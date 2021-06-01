@@ -4,7 +4,7 @@
 VERSION = 1.0
 
 # paths
-DESTDIR= ~/.local/bin
+DESTDIR= /usr/bin
 SRC = threadwatcher
 
 
