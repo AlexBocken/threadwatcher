@@ -4,7 +4,7 @@ MD5 checks are implemented to safe-guard against corrupted files.
 
 This script relies mainly on `dmenu` for interactions.
 
-```sh
+```
 threadwatcher [add URL DL_LOCATION] [list] [edit] [clean]
 
 add URL DL_LOCATION
@@ -16,6 +16,26 @@ edit
 clean
         deletes threads file. This will not delete already downloaded material.
 ```
+
+## Installation
+
+### AUR
+threadwatcher is in the AUR! Using your favorite AUR package manager, paru for example, it's a simple
+```
+paru -S threadwatcher
+```
+This is the recommended installation version for Arch-based distros.
+
+### From Source
+As the Makefile might suggest, it's
+```
+git clone https://github.com/AlexBocken/threadwatcher
+cd threadwatcher
+make install
+```
+root privileges are required for the default install location.
+If issues with running the program persist, first check the "Requirements" section below.
+
 
 ## Requirements
 Besides the obvious stuff for shell scripts like `sed`,`awk`,`grep` and other base-devel programs, this script relies on `jq` and, of course, `dmenu`.
