@@ -3,7 +3,7 @@
 #It uses the file name used by the uploader.
 #(and adds post no. to distinguish possible duplicate file names)
 #consider using it in a cronjob intermittently with something like
-#*/10 * * * * /home/<username>/.local/bin/threadwatcher scan
+#*/10 * * * * /usr/bin/threadwatcher scan
 THREADWATCHER_DIR=${XDG_DATA_HOME:-$HOME/.local/share}/threadwatcher
 URLFILE="$THREADWATCHER_DIR/threads"
 TMP_URLFILE=/tmp/4chan_thread_watcher_tmp$$
