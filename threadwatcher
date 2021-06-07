@@ -60,7 +60,7 @@ scan(){
 			echo "$line" >> "$TMP_URLFILE"
 			mkdir -p "$dl_location"
 		fi
-		files_json="$(jq '.posts[] | if has("filename") then {filename: "\(.no)_\(.filename)\(.ext)", location: "\(.tim)\(.ext)", md5: .md5} else null end ' < /tmp/content$$ | grep -vE '^null$')"
+		files_json="$(jq '.posts[] | if has("filename") then {filename: "\(.no)_\(.filename)\(.ext)", location: "\(.tim)\(.ext)", md5: .md5} else empty end ' < /tmp/content$$ )"
 		rm /tmp/content$$
 		#pastes together a multiline var using process substitution with
 		#layout: filename location md5
