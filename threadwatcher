@@ -161,11 +161,11 @@ case "$1" in
 threadwatcher [add URL DL_LOCATION] [list] [edit] [clean]
 
 add URL DL_LOCATION
-	downloads specified thread to given locaton. Paths can be relative to HOME or absolute.
+	downloads specified thread to given location. Paths can be relative to HOME or absolute.
 list
 	lists all currently watched URLs and where they are downloading to
 edit
-	open threads file in \$EDITOR/vim to manually edit error
+	open threads file in \$EDITOR/vim to manually edit.
 clean
 	deletes threads file. This will not delete already downloaded material." && exit 1;;
 esac
