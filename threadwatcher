@@ -34,8 +34,8 @@ scan(){
 		echo "no threads to watch over currently"
 		exit
 	fi
-	# READS URLFILE
-	while read -r line; do
+
+	tac "$URLFILE" | while read -r line; do
 		running_dls=0
 		url="$(echo "$line" | cut -f1)"
 		dl_location="$(echo "$line" | cut -f2)"
@@ -95,7 +95,7 @@ scan(){
 			fi
 		done
 		wait
-	done < "$URLFILE"
+	done
 	mv "$TMP_URLFILE" "$URLFILE"
 	rm /tmp/threadwatcher.lock
 }
