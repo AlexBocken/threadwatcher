@@ -43,8 +43,7 @@ scan(){
 		json_url="$(echo "$url" | sed -E 's/boards\.(4chan|4channel)/a.4cdn/; s/$/.json/')"
 		curl -s -L "$json_url" | jq . > /tmp/content$$
 		thread_title="$(jq '.posts[0].sub' < /tmp/content$$ | tr -d '"')"
-		echo "scanning $url ($thread_title)"
-		echo "downloading to $dl_location"
+		echo "$url ($thread_title) $(echo "$dl_location" | sed "s|$HOME|~|")"
 		if [ -z "$(</tmp/content$$)" ]; then
 			#check for internet again, just in case
 			if ping -q -c 1 1.1.1.1 > /dev/null || ping -q -c 1 1.0.0.1 > /dev/null || ping -q -c 1 example.org
@@ -115,11 +114,17 @@ case "$1" in
 		if grep -qP "^$2\t" "$URLFILE"; then
 			dl_location_already="$(grep -P "^$2\t" "$URLFILE" | cut -f2)"
 			notify-send "threadwatcher" "Thread already being watched. currently downloads to $(echo "$dl_location_already" | sed "s|$HOME|~|")"
-			prompt "Do you want to change download directory to $3?" &&
-				new_location="$dl_location" ||
+
+			if [ "$dl_location" != "$dl_location_already" ]; then
+				prompt "Do you want to change download directory to $3?" &&
+					new_location="$dl_location" ||
+					exit 0
+				[ -z "$new_location" ] && exit
+				sed -i "s|$dl_location_already|$new_location|" "$URLFILE"
+			else
+				echo "Already downloading thread to same location, exiting..."
 				exit 0
-			[ -z "$new_location" ] && exit
-			sed -i "s|$dl_location_already|$new_location|" "$URLFILE"
+			fi
 
 			## Move already downloaded files to new location
 			ping -q -c 1 1.1.1.1 > /dev/null || ping -q -c 1 1.0.0.1 > /dev/null || ping -q -c 1 example.org || { echo "No internet connection detected."; exit ;}
