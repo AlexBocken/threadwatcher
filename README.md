@@ -40,3 +40,8 @@ If issues with running the program persist, first check the "Requirements" secti
 ## Requirements
 Besides the obvious stuff for shell scripts like `sed`,`awk`,`grep` and other base-devel programs, this script relies on `jq` and, of course, `dmenu`.
 Make sure these programs are installed.
+
+
+## TODO
+
+[ ] differentiate between thread complete and 4chan down (curl error codes don't work because of cloudflare)
