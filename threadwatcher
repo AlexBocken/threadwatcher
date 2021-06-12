@@ -16,9 +16,27 @@ DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus
 export DBUS_SESSION_BUS_ADDRESS
 export DISPLAY=:0.0
 
+help="threadwatcher [add URL DL_LOCATION] [list] [edit] [clean]
+
+add URL DL_LOCATION
+	downloads specified thread to given location. Paths can be relative to HOME or absolute.
+list	lists all currently watched URLs and where they are downloading to
+edit	open threads file in \$EDITOR/vim to manually edit.
+clean	deletes threads file. This will not delete already downloaded material.
+help	display this help and exit."
+
 #included personal prompt script here as function for portability.
 prompt(){
 	[ "$(printf "No\\nYes" | dmenu -i -n -p "$1" -nb darkred -sb red -sf white -nf gray )" = "Yes" ] && $2
+}
+
+makepathabsolute(){
+	if echo "$1" | grep -qE '^/'; then
+		dl_location="$1"
+	else
+		dl_location="$HOME/$1"
+	fi
+	echo "$dl_location"
 }
 
 scan(){
@@ -27,7 +45,7 @@ scan(){
 	done
 	#Create lock file to stop override of URLFILE while scanning
 	touch /tmp/threadwatcher.lock
-	ping -q -c 1 1.1.1.1 > /dev/null || ping -q -c 1 1.0.0.1 > /dev/null || ping -q -c 1 example.org || { echo "No internet connection detected."; exit ;}
+	ping -q -c 1 1.1.1.1 > /dev/null || ping -q -c 1 1.0.0.1 > /dev/null || ping -q -c 1 4channel.org || { echo "No internet connection detected."; exit ;}
 	if [ $(wc -l < "$URLFILE") -gt 0 ]; then
 		echo "scanning threads..."
 	else
@@ -99,24 +117,14 @@ scan(){
 	rm /tmp/threadwatcher.lock
 }
 
-makepathabsolute(){
-	if echo "$1" | grep -qE '^/'; then
-		dl_location="$1"
-	else
-		dl_location="$HOME/$1"
-	fi
-	echo "$dl_location"
-}
-
-
-case "$1" in
-	"add") dl_location="$(makepathabsolute "$3")"
-		if grep -qP "^$2\t" "$URLFILE"; then
-			dl_location_already="$(grep -P "^$2\t" "$URLFILE" | cut -f2)"
+add() {
+dl_location="$(makepathabsolute "$2")"
+		if grep -qP "^$1\t" "$URLFILE"; then
+			dl_location_already="$(grep -P "^$1\t" "$URLFILE" | cut -f2)"
 			notify-send "threadwatcher" "Thread already being watched. currently downloads to $(echo "$dl_location_already" | sed "s|$HOME|~|")"
 
 			if [ "$dl_location" != "$dl_location_already" ]; then
-				prompt "Do you want to change download directory to $3?" &&
+				prompt "Do you want to change download directory to $2?" &&
 					new_location="$dl_location" ||
 					exit 0
 				[ -z "$new_location" ] && exit
@@ -127,9 +135,9 @@ case "$1" in
 			fi
 
 			## Move already downloaded files to new location
-			ping -q -c 1 1.1.1.1 > /dev/null || ping -q -c 1 1.0.0.1 > /dev/null || ping -q -c 1 example.org || { echo "No internet connection detected."; exit ;}
+			ping -q -c 1 1.1.1.1 > /dev/null || ping -q -c 1 1.0.0.1 > /dev/null || ping -q -c 1 4channel.org || { echo "No internet connection detected."; exit ;}
 			mkdir -p "$new_location"
-			url="$2"
+			url="$1"
 			json_url="$(echo "$url" | sed -E 's/boards\.(4chan|4channel)/a.4cdn/; s/$/.json/')"
 			curl -s -L "$json_url" | jq . > /tmp/content$$
 			files_json="$(jq '.posts[] | if has("filename") then {filename: "\(.no)_\(.filename)\(.ext)", location: "\(.tim)\(.ext)"} else empty end ' < /tmp/content$$)"
@@ -144,10 +152,14 @@ case "$1" in
 			notify-send "threadwatcher" "already downloaded files moved to $new_location. New files will also be downloaded there"
 
 		else
-			printf "%s\t%s\n" "$2" "$dl_location" | tee -ai "$URLFILE"
-			echo "added $2 to threadwatcher list. Downloading to $dl_location"
+			printf "%s\t%s\n" "$1" "$dl_location" | tee -ai "$URLFILE"
+			echo "added $1 to threadwatcher list. Downloading to $dl_location"
 		fi
 		echo "dl_location:$dl_location"
+}
+
+case "$1" in
+	"add") 	add "$2" "$3"
 		# Wait for last scan to finish in case of quick successive additions.
 		# Otherwise there is a potential loss of threads
 		scan;;
@@ -162,15 +174,7 @@ case "$1" in
 		rm "$URLFILE"
 		touch "$URLFILE";;
 	"edit") ${EDITOR:-vim} "$URLFILE";;
-	*)echo "Incorrect usage. Correct usage:
-threadwatcher [add URL DL_LOCATION] [list] [edit] [clean]
-
-add URL DL_LOCATION
-	downloads specified thread to given location. Paths can be relative to HOME or absolute.
-list
-	lists all currently watched URLs and where they are downloading to
-edit
-	open threads file in \$EDITOR/vim to manually edit.
-clean
-	deletes threads file. This will not delete already downloaded material." && exit 1;;
+	"help") echo "$help";;
+	*)echo "Incorrect usage. Correct usage:"
+		echo "$help" && exit 1;;
 esac
