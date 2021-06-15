@@ -16,7 +16,7 @@ DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus
 export DBUS_SESSION_BUS_ADDRESS
 export DISPLAY=:0.0
 
-help="threadwatcher [add URL DL_LOCATION] [list] [edit] [clean]
+help="threadwatcher [add URL DL_LOCATION] [list] [edit] [clean] [help]
 
 add URL DL_LOCATION
 	downloads specified thread to given location. Paths can be relative to HOME or absolute.
@@ -113,7 +113,8 @@ scan(){
 		done
 		wait
 	done
-	mv "$TMP_URLFILE" "$URLFILE"
+	tac "$TMP_URLFILE" > "$URLFILE"
+	rm "$TMP_URLFILE"
 	rm /tmp/threadwatcher.lock
 }
 
