@@ -45,14 +45,15 @@ scan(){
 	done
 	#Create lock file to stop override of URLFILE while scanning
 	touch /tmp/threadwatcher.lock
-	ping -q -c 1 1.1.1.1 > /dev/null || ping -q -c 1 1.0.0.1 > /dev/null || ping -q -c 1 4channel.org || { echo "No internet connection detected."; exit ;}
-	if [ $(wc -l < "$URLFILE") -gt 0 ]; then
+	ping -q -c 1 4channel.org || { echo "Cannot connect to 4chan."; exit 1;}
+	if [ "$(wc -l < "$URLFILE")" -gt 0 ]; then
 		echo "scanning threads..."
 	else
 		echo "no threads to watch over currently"
 		exit
 	fi
 
+	#tac used to prioritze newly added threads.
 	tac "$URLFILE" | while read -r line; do
 		running_dls=0
 		url="$(echo "$line" | cut -f1)"
@@ -63,14 +64,14 @@ scan(){
 		thread_title="$(jq '.posts[0].sub' < /tmp/content$$ | tr -d '"')"
 		echo "$url ($thread_title) $(echo "$dl_location" | sed "s|$HOME|~|")"
 		if [ -z "$(</tmp/content$$)" ]; then
-			#check for internet again, just in case
-			if ping -q -c 1 1.1.1.1 > /dev/null || ping -q -c 1 1.0.0.1 > /dev/null || ping -q -c 1 example.org
+			#check for internet again, in case something has changed during the download process
+			if ping -q -c 1 4channel.org >/dev/null
 			then
 				echo "Thread $url not found ($dl_location) deleting from cached list of threads to watch"
 				notify-send "threadwatcher" "Thread downloading to $(echo "$dl_location" | sed "s|$HOME|~|") is complete now."
 			else
-				echo "No internet connection detected."
-				exit
+				echo "Cannot connect to 4chan."
+				exit 1
 			fi
 			continue
 		else
@@ -81,10 +82,11 @@ scan(){
 		rm /tmp/content$$
 		#pastes together a multiline var using process substitution with
 		#layout: filename location md5
-		#only reason for bash here with process substitution
+		#only real reason for bash here with process substitution
+		#(gets messy with lots of temp files otherwise)
 		files="$(paste <(paste <(echo "$files_json" | jq '.filename' | tr -d '"') <(echo "$files_json" | jq '.location' | tr -d '"')) <(echo "$files_json" | jq '.md5' | tr -d '"'))"
 		echo "$files" | while read -r file_line; do
-			#better cleanup like in booksplitter?
+			#TODO: better cleanup like in booksplitter?
 			filename="$(echo "$file_line" | cut -f1 | tr ' ' '_')"
 			master_location="$(echo "$file_line" | cut -f2 | tr -d '"')"
 			filelocation="$dl_location/$filename"
@@ -99,8 +101,6 @@ scan(){
 					rm "$filelocation"
 					echo "removed $filename because of incorrect checksum, redownloading."
 				fi
-				[ -f "$filelocation" ] ||
-					touch "$filelocation" #to keep atime order correct?
 				#limit concurrent dls
 				if [ $running_dls -gt 25 ]; then
 					wait
