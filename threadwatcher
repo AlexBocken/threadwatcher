@@ -40,6 +40,8 @@ makepathabsolute(){
 }
 
 scan(){
+	[ -f /tmp/threadwatcher.lock ] && [ "$(pgrep -c threadwatcher)" -gt 1 ] &&
+		echo "Threadwatcher already scanning... waiting for it to finish before rescanning."
 	while [ -f /tmp/threadwatcher.lock ] && [ "$(pgrep -c threadwatcher)" -gt 1 ]; do
 		sleep 1
 	done
@@ -47,9 +49,9 @@ scan(){
 	touch /tmp/threadwatcher.lock
 	ping -q -c 1 4channel.org > /dev/null|| { echo "Cannot connect to 4chan."; exit 1;}
 	if [ "$(wc -l < "$URLFILE")" -gt 0 ]; then
-		echo "scanning threads..."
+		echo "Scanning threads..."
 	else
-		echo "no threads to watch over currently"
+		echo "No threads to watch over currently."
 		exit
 	fi
 
