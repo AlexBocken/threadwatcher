@@ -107,7 +107,7 @@ scan(){
 					running_dls=0
 				fi
 				wget -q -O "$filelocation" "$file_url" &
-				echo downloading "$filelocation"
+				echo "[+] $filelocation"
 				((running_dls=running_dls+1))
 			fi
 		done
