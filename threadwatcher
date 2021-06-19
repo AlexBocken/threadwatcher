@@ -101,7 +101,7 @@ scan(){
 			else
 				if [ "$correct_md5" != "$slave_md5" ] && [ -f "$filelocation" ]; then
 					rm "$filelocation"
-					echo "removed $filename because of incorrect checksum, redownloading."
+					echo "[-] $filename because of incorrect checksum, redownloading."
 				fi
 				#limit concurrent dls
 				if [ $running_dls -gt 25 ]; then
@@ -121,7 +121,8 @@ scan(){
 }
 
 add() {
-dl_location="$(makepathabsolute "$2")"
+
+	dl_location="$(makepathabsolute "$2")"
 		if grep -qP "^$1\t" "$URLFILE"; then
 			dl_location_already="$(grep -P "^$1\t" "$URLFILE" | cut -f2)"
 			notify-send "threadwatcher" "Thread already being watched. currently downloads to $(echo "$dl_location_already" | sed "s|$HOME|~|")"
@@ -131,6 +132,14 @@ dl_location="$(makepathabsolute "$2")"
 					new_location="$dl_location" ||
 					exit 0
 				[ -z "$new_location" ] && exit
+				# Wait for last scan to finish in case of quick successive additions.
+				# Otherwise there is a potential loss of threads
+				[ -f /tmp/threadwatcher.lock ] && [ "$(pgrep -c threadwatcher)" -gt 1 ] &&
+					echo "Threadwatcher currently scanning. Waiting for it to finish before adding new thread and rescanning."
+				while [ -f /tmp/threadwatcher.lock ] && [ "$(pgrep -c threadwatcher)" -gt 1 ]; do
+					sleep 1
+				done
+
 				sed -i "s|$dl_location_already|$new_location|" "$URLFILE"
 			else
 				echo "Already downloading thread to same location, exiting..."
@@ -155,6 +164,14 @@ dl_location="$(makepathabsolute "$2")"
 			notify-send "threadwatcher" "already downloaded files moved to $new_location. New files will also be downloaded there"
 
 		else
+			# Wait for last scan to finish in case of quick successive additions.
+			# Otherwise there is a potential loss of threads
+			[ -f /tmp/threadwatcher.lock ] && [ "$(pgrep -c threadwatcher)" -gt 1 ] &&
+				echo "Threadwatcher currently scanning. Waiting for it to finish before adding new thread and rescanning."
+			while [ -f /tmp/threadwatcher.lock ] && [ "$(pgrep -c threadwatcher)" -gt 1 ]; do
+				sleep 1
+			done
+
 			printf "%s\t%s\n" "$1" "$dl_location" | tee -ai "$URLFILE"
 			echo "added $1 to threadwatcher list. Downloading to $dl_location"
 		fi
@@ -163,8 +180,6 @@ dl_location="$(makepathabsolute "$2")"
 
 case "$1" in
 	"add") 	add "$2" "$3"
-		# Wait for last scan to finish in case of quick successive additions.
-		# Otherwise there is a potential loss of threads
 		scan;;
 	"scan") scan;;
 	"list") printf "Thread:\t\t\t\t\t\tDownload location:\n"
@@ -174,6 +189,12 @@ case "$1" in
 		cat "$URLFILE"
 		prompt "Do you want to stop watching over all current threads?" || exit 0
 		echo "Deleting..."
+		[ -f /tmp/threadwatcher.lock ] && [ "$(pgrep -c threadwatcher)" -gt 1 ] &&
+			echo "Threadwatcher currently scanning. Waiting for it to finish before deleting file"
+		while [ -f /tmp/threadwatcher.lock ] && [ "$(pgrep -c threadwatcher)" -gt 1 ]; do
+			sleep 1
+		done
+
 		rm "$URLFILE"
 		touch "$URLFILE";;
 	"edit") ${EDITOR:-vim} "$URLFILE";;
