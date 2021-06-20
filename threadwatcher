@@ -121,7 +121,6 @@ scan(){
 }
 
 add() {
-
 	dl_location="$(makepathabsolute "$2")"
 		if grep -qP "^$1\t" "$URLFILE"; then
 			dl_location_already="$(grep -P "^$1\t" "$URLFILE" | cut -f2)"
@@ -175,7 +174,6 @@ add() {
 			printf "%s\t%s\n" "$1" "$dl_location" | tee -ai "$URLFILE"
 			echo "added $1 to threadwatcher list. Downloading to $dl_location"
 		fi
-		echo "dl_location:$dl_location"
 }
 
 case "$1" in
@@ -197,7 +195,9 @@ case "$1" in
 
 		rm "$URLFILE"
 		touch "$URLFILE";;
-	"edit") ${EDITOR:-vim} "$URLFILE";;
+	"edit") #kill all other threadwatcher instances sine they could want to change $URLFILE
+		pgrep threadwatcher | grep -v "^$$$" | xargs -r kill
+		${EDITOR:-vim} "$URLFILE";;
 	"help") echo "$help";;
 	*)echo "Incorrect usage. Correct usage:"
 		echo "$help" && exit 1;;
