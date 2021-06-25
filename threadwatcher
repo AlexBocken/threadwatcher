@@ -19,7 +19,7 @@ export DISPLAY=:0.0
 help="threadwatcher [add URL DL_LOCATION] [list] [edit] [clean] [help]
 
 add URL DL_LOCATION
-	downloads specified thread to given location. Paths can be relative to HOME or absolute.
+	downloads specified thread to given location. Paths can be relative to \$HOME or absolute.
 list	lists all currently watched URLs and where they are downloading to
 edit	open threads file in \$EDITOR/vim to manually edit.
 clean	deletes threads file. This will not delete already downloaded material.
@@ -27,7 +27,20 @@ help	display this help and exit."
 
 #included personal prompt script here as function for portability.
 prompt(){
-	[ "$(printf "No\\nYes" | dmenu -i -n -p "$1" -nb darkred -sb red -sf white -nf gray )" = "Yes" ] && $2
+	#use dmenu if installed
+	if [ -n  "$(which dmenu)" ]; then
+		# assumes a few dmenu patches to be installed, remove flags as needed
+		[ "$(printf "No\\nYes" | dmenu -i -n -p "$1" -nb darkred -sb red -sf white -nf gray )" = "Yes" ] && $2
+	#show terminal prompt otherwise
+	else
+		printf "%s (y/N):" "$1"
+		read -r choice
+		if [ "$choice" = "y" ]; then
+			$2
+		else
+			exit
+		fi
+	fi
 }
 
 makepathabsolute(){
