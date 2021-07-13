@@ -6,7 +6,7 @@
 #*/10 * * * * /usr/bin/threadwatcher scan
 THREADWATCHER_DIR=${XDG_DATA_HOME:-$HOME/.local/share}/threadwatcher
 URLFILE="$THREADWATCHER_DIR/threads"
-AUTORM=true #automatically removes ended thread from threads list. Unreliable internet connections can mess up threads list.
+AUTOPRUNE=true #automatically removes ended thread from threads list. Unreliable internet connections can mess up threads list.
 TMP_URLFILE=/tmp/4chan_thread_watcher_tmp$$
 
 [ -d "$THREADWATCHER_DIR" ] || mkdir -p "$THREADWATCHER_DIR"
@@ -24,6 +24,7 @@ add URL DL_LOCATION
 list	lists all currently watched URLs and where they are downloading to
 edit	open threads file in \$EDITOR/vim to manually edit.
 clean	deletes threads file. This will not delete already downloaded material.
+prune	manually prune list of threads. Deletes all finished threads from list.
 help	display this help and exit."
 
 #included personal prompt script here as function for portability.
@@ -59,7 +60,7 @@ scan(){
 	while [ -f /tmp/threadwatcher.lock ] && [ "$(pgrep -c threadwatcher)" -gt 1 ]; do
 		sleep 1
 	done
-	#Create lock file to stop override of URLFILE while scanning
+	#Create lock file to stop override of URLFILE
 	touch /tmp/threadwatcher.lock
 	ping -q -c 1 4channel.org > /dev/null|| { echo "Cannot connect to 4chan."; exit 1;}
 	if [ "$(wc -l < "$URLFILE")" -gt 0 ]; then
@@ -78,13 +79,15 @@ scan(){
 		json_url="$(echo "$url" | sed -E 's/boards\.(4chan|4channel)/a.4cdn/; s/$/.json/')"
 		curl -s -L "$json_url" | jq . > /tmp/content$$
 		thread_title="$(jq '.posts[0].sub' < /tmp/content$$ | tr -d '"')"
+		# shellcheck disable=SC2001
 		echo "$url ($thread_title) $(echo "$dl_location" | sed "s|$HOME|~|")"
 		if [ -z "$(</tmp/content$$)" ]; then
 			#check for internet again, in case something has changed during the download process
 			if ping -q -c 1 4channel.org > /dev/null
 			then
-				if [ "$AUTORM" = "true" ]; then
-					echo "Thread $url not found ($dl_location) deleting from cached list of threads to watch"
+				if [ "$AUTOPRUNE" = "true" ]; then
+					echo "Thread $url not found ($dl_location) pruning from cached list of threads to watch"
+					# shellcheck disable=SC2001
 					notify-send "threadwatcher" "Thread downloading to $(echo "$dl_location" | sed "s|$HOME|~|") is complete now."
 				fi
 			else
@@ -137,10 +140,60 @@ scan(){
 	rm /tmp/threadwatcher.lock
 }
 
+prune(){
+	[ -f /tmp/threadwatcher.lock ] && [ "$(pgrep -c threadwatcher)" -gt 1 ] &&
+	echo "Threadwatcher already scanning... waiting for it to finish before pruning"
+	while [ -f /tmp/threadwatcher.lock ] && [ "$(pgrep -c threadwatcher)" -gt 1 ]; do
+		sleep 1
+	done
+	#Create lock file to stop override of URLFILE
+	touch /tmp/threadwatcher.lock
+	ping -q -c 1 4channel.org > /dev/null|| { echo "Cannot connect to 4chan."; exit 1;}
+	if [ "$(wc -l < "$URLFILE")" -gt 0 ]; then
+		echo "Pruning threads..."
+	else
+		echo "No threads to prune."
+		exit
+	fi
+
+	#tac used to prioritze newly added threads.
+	tac "$URLFILE" | while read -r line; do
+		url="$(echo "$line" | cut -f1)"
+		dl_location="$(echo "$line" | cut -f2)"
+		json_url="$(echo "$url" | sed -E 's/boards\.(4chan|4channel)/a.4cdn/; s/$/.json/')"
+		curl -s -L "$json_url" | jq . > /tmp/content$$
+		thread_title="$(jq '.posts[0].sub' < /tmp/content$$ | tr -d '"')"
+		# shellcheck disable=SC2001
+		echo "$url ($thread_title) $(echo "$dl_location" | sed "s|$HOME|~|")"
+		if [ -z "$(</tmp/content$$)" ]; then
+			#check for internet again, in case something has changed during the download process
+			if ping -q -c 1 4channel.org > /dev/null
+			then
+				echo "Thread $url not found ($dl_location) pruning from cached list of threads to watch"
+				# shellcheck disable=SC2001
+				notify-send "threadwatcher" "Thread downloading to $(echo "$dl_location" | sed "s|$HOME|~|") is complete now."
+			else
+				echo "Cannot connect to 4chan."
+				exit 1
+			fi
+			continue
+		else
+			echo "Thread still running!"
+			echo "$line" >> "$TMP_URLFILE"
+		fi
+		rm /tmp/content$$
+	done
+	tac "$TMP_URLFILE" > "$URLFILE"
+	rm "$TMP_URLFILE"
+	rm /tmp/threadwatcher.lock
+
+}
+
 add() {
 	dl_location="$(makepathabsolute "$2")"
 		if grep -qP "^$1\t" "$URLFILE"; then
 			dl_location_already="$(grep -P "^$1\t" "$URLFILE" | cut -f2)"
+			# shellcheck disable=SC2001
 			notify-send "threadwatcher" "Thread already being watched. currently downloads to $(echo "$dl_location_already" | sed "s|$HOME|~|")"
 
 			if [ "$dl_location" != "$dl_location_already" ]; then
@@ -215,6 +268,7 @@ case "$1" in
 	"edit") #kill all other threadwatcher instances sine they could want to change $URLFILE
 		pgrep threadwatcher | grep -v "^$$$" | xargs -r kill
 		${EDITOR:-vim} "$URLFILE";;
+	"prune") prune;;
 	"help") echo "$help";;
 	*)echo "Incorrect usage. Correct usage:"
 		echo "$help" && exit 1;;
