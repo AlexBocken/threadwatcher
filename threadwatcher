@@ -6,6 +6,7 @@
 #*/10 * * * * /usr/bin/threadwatcher scan
 THREADWATCHER_DIR=${XDG_DATA_HOME:-$HOME/.local/share}/threadwatcher
 URLFILE="$THREADWATCHER_DIR/threads"
+AUTORM=true #automatically removes ended thread from threads list. Unreliable internet connections can mess up threads list.
 TMP_URLFILE=/tmp/4chan_thread_watcher_tmp$$
 
 [ -d "$THREADWATCHER_DIR" ] || mkdir -p "$THREADWATCHER_DIR"
@@ -82,8 +83,10 @@ scan(){
 			#check for internet again, in case something has changed during the download process
 			if ping -q -c 1 4channel.org > /dev/null
 			then
-				echo "Thread $url not found ($dl_location) deleting from cached list of threads to watch"
-				notify-send "threadwatcher" "Thread downloading to $(echo "$dl_location" | sed "s|$HOME|~|") is complete now."
+				if [ "$AUTORM" = "true" ]; then
+					echo "Thread $url not found ($dl_location) deleting from cached list of threads to watch"
+					notify-send "threadwatcher" "Thread downloading to $(echo "$dl_location" | sed "s|$HOME|~|") is complete now."
+				fi
 			else
 				echo "Cannot connect to 4chan."
 				exit 1
