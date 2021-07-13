@@ -105,7 +105,8 @@ scan(){
 		files="$(paste <(paste <(echo "$files_json" | jq '.filename' | tr -d '"') <(echo "$files_json" | jq '.location' | tr -d '"')) <(echo "$files_json" | jq '.md5' | tr -d '"'))"
 		echo "$files" | while read -r file_line; do
 			#TODO: better cleanup like in booksplitter?
-			filename="$(echo "$file_line" | cut -f1 | tr ' ' '_')"
+			filename="$(echo "$file_line" | cut -f1 | tr ' ' '_' |
+				perl -C -MHTML::Entities -pe 'decode_entities($_);')" #recode html entities as UTF-8
 			master_location="$(echo "$file_line" | cut -f2 | tr -d '"')"
 			filelocation="$dl_location/$filename"
 			correct_md5="$(echo "$file_line" | cut -f3)"
