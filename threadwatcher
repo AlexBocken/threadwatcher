@@ -138,8 +138,7 @@ scan(){
 		wait
 	done
 	tac "$TMP_URLFILE" > "$URLFILE"
-	rm "$TMP_URLFILE"
-	rm /tmp/threadwatcher.lock
+	cleanup
 }
 
 prune(){
@@ -150,12 +149,12 @@ prune(){
 	done
 	#Create lock file to stop override of URLFILE
 	touch /tmp/threadwatcher.lock
-	ping -q -c 1 4channel.org > /dev/null|| { echo "Cannot connect to 4chan."; exit 1;}
+	ping -q -c 1 4channel.org > /dev/null|| { echo "Cannot connect to 4chan."; cleanup && exit 1;}
 	if [ "$(wc -l < "$URLFILE")" -gt 0 ]; then
 		echo "Pruning threads..."
 	else
 		echo "No threads to prune."
-		exit
+		cleanup && exit
 	fi
 
 	#tac used to prioritze newly added threads.
@@ -176,7 +175,7 @@ prune(){
 				notify-send "threadwatcher" "Thread downloading to $(echo "$dl_location" | sed "s|$HOME|~|") is complete now."
 			else
 				echo "Cannot connect to 4chan."
-				exit 1
+				cleanup && exit 1
 			fi
 			continue
 		else
@@ -186,9 +185,7 @@ prune(){
 		rm /tmp/content$$
 	done
 	tac "$TMP_URLFILE" > "$URLFILE"
-	rm "$TMP_URLFILE"
-	rm /tmp/threadwatcher.lock
-
+	cleanup
 }
 
 add() {
@@ -246,6 +243,11 @@ add() {
 			printf "%s\t%s\n" "$1" "$dl_location" | tee -ai "$URLFILE"
 			echo "added $1 to threadwatcher list. Downloading to $dl_location"
 		fi
+}
+
+cleanup(){
+	rm -f /tmp/threadwatcher.lock
+	rm -f "$TMP_URLFILE"
 }
 
 case "$1" in
