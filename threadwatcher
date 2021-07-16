@@ -89,13 +89,13 @@ scan(){
 					echo "Thread $url not found ($dl_location) pruning from cached list of threads to watch"
 					# shellcheck disable=SC2001
 					notify-send "threadwatcher" "Thread downloading to $(echo "$dl_location" | sed "s|$HOME|~|") is complete now."
-				else
-					echo "$line" >> "$TMP_URLFILE"
 				fi
 			else
 				echo "Cannot connect to 4chan."
 				exit 1
 			fi
+			[ "$AUTOPRUNE" = 'false' ] &&
+				echo "$line" >> "$TMP_URLFILE"
 			continue
 		else
 			echo "$line" >> "$TMP_URLFILE"
