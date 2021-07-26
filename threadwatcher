@@ -225,7 +225,8 @@ add() {
 			#only reason for bash here with process substitution
 			files="$(paste <(echo "$files_json" | jq '.filename' | tr -d '"') <(echo "$files_json" | jq '.location' | tr -d '"'))"
 			echo "$files" | while read -r file_line; do
-				filename="$(echo "$file_line" | cut -f1 | tr ' ' '_')"
+				filename="$(echo "$file_line" | cut -f1 | tr ' ' '_' |
+					perl -C -MHTML::Entities -pe 'decode_entities($_);')"
 				mv -v "$dl_location_already/$filename" "$new_location"
 			done
 			rmdir --ignore-fail-on-non-empty "$dl_location_already"
