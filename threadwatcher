@@ -207,7 +207,7 @@ dedupe(){
 	fi
 	echo "$dirs" | while read -r dir; do
 		echo "Generating checksums for $dir ..."
-		duplicates="$( sha512sum "$dir"/* | sort | awk 'seen[$1]++' )"
+		duplicates="$( sha512sum "$dir"/* | sort -r | awk 'seen[$1]++' )"
 		if [ -n "$duplicates" ]; then
 			echo "Deleting duplicates..."
 			echo "$duplicates" | cut -d' ' -f1,2 --complement |
