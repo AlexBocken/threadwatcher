@@ -25,6 +25,9 @@ list	lists all currently watched URLs and where they are downloading to
 edit	open threads file in \$EDITOR/vim to manually edit.
 clean	deletes threads file. This will not delete already downloaded material.
 prune	manually prune list of threads. Deletes all finished threads from list.
+dedupe	[DIR]
+	remove all duplicate files from current download directories. (Comparing sha512 sums)
+	If no DIR is given, will check all currently downloading directories.
 help	display this help and exit."
 
 #included personal prompt script here as function for portability.
@@ -188,6 +191,34 @@ prune(){
 	cleanup
 }
 
+dedupe(){
+	if [ -n "$1" ]; then
+		dirs="$1"
+		echo "Deduping $1 manually..."
+	else
+		if [ "$(wc -l < "$URLFILE")" -gt 0 ]; then
+			echo "Deduping download directories..."
+		else
+			echo "No download directories to dedupe."
+			cleanup && exit
+		fi
+		#tac used to prioritze newly added threads.
+		dirs="$( tac "$URLFILE" | cut -f2 | awk '!seen[$0]++' )"
+	fi
+	echo "$dirs" | while read -r dir; do
+		echo "Generating checksums for $dir ..."
+		duplicates="$( sha512sum "$dir"/* | sort | awk 'seen[$1]++' )"
+		if [ -n "$duplicates" ]; then
+			echo "Deleting duplicates..."
+			echo "$duplicates" | cut -d' ' -f1,2 --complement |
+				while read -r file; do
+					rm -v "$file"
+				done
+			echo "$(echo "$duplicates" | wc -l) duplicate files have been deleted in $dir"
+		fi
+	done
+}
+
 add() {
 	dl_location="$(makepathabsolute "$2")"
 		if grep -qP "^$1\t" "$URLFILE"; then
@@ -197,8 +228,7 @@ add() {
 
 			if [ "$dl_location" != "$dl_location_already" ]; then
 				prompt "Do you want to change download directory to $2?" &&
-					new_location="$dl_location" ||
-					exit 0
+					new_location="$dl_location"
 				[ -z "$new_location" ] && exit
 				# Wait for last scan to finish in case of quick successive additions.
 				# Otherwise there is a potential loss of threads
@@ -274,6 +304,7 @@ case "$1" in
 		pgrep threadwatcher | grep -v "^$$$" | xargs -r kill
 		${EDITOR:-vim} "$URLFILE";;
 	"prune") prune;;
+	"dedupe") dedupe "$2";;
 	"help") echo "$help";;
 	*)echo "Incorrect usage. Correct usage:"
 		echo "$help" && exit 1;;
