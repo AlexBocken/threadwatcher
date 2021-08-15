@@ -4,9 +4,14 @@
 #(and adds post no. to distinguish possible duplicate file names)
 #consider using it in a cronjob intermittently with something like
 #*/10 * * * * /usr/bin/threadwatcher scan
-THREADWATCHER_DIR=${XDG_DATA_HOME:-$HOME/.local/share}/threadwatcher
+if [ -z "$TW_THREADWATCHER_DIR" ]; then
+	THREADWATCHER_DIR=${XDG_DATA_HOME:-$HOME/.local/share}/threadwatcher
+else
+	THREADWATCHER_DIR="$TW_THREADWATCHER_DIR"
+fi
 URLFILE="$THREADWATCHER_DIR/threads"
-AUTOPRUNE=true #automatically removes ended thread from threads list. Unreliable internet connections can mess up threads list.
+AUTOPRUNE=${TW_AUTOPRUNE:-true} #automatically removes ended thread from threads list. Unreliable internet connections can mess up threads list.
+AUTODEDUPE=${TW_AUTODEDUPE:-false} #automatically remove dupes after each scanned thread
 TMP_URLFILE=/tmp/4chan_thread_watcher_tmp$$
 
 [ -d "$THREADWATCHER_DIR" ] || mkdir -p "$THREADWATCHER_DIR"
@@ -139,6 +144,9 @@ scan(){
 			fi
 		done
 		wait
+		if [ "$AUTODEDUPE" = "true" ]; then
+			dedupe "$dl_location"
+		fi
 	done
 	tac "$TMP_URLFILE" > "$URLFILE"
 	cleanup
