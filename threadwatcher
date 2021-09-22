@@ -138,7 +138,7 @@ scan(){
 					wait
 					running_dls=0
 				fi
-				wget -q -O "$filelocation" "$file_url" &
+				curl -s -o "$filelocation" "$file_url" &
 				echo "[+] $filelocation"
 				((running_dls=running_dls+1))
 			fi
