@@ -42,6 +42,7 @@ If issues with running the program persist, first check the "Requirements" secti
 There are some environment variables which can be set to change threadwatchers behaviour:
 
 | variable name          | explanation                                                                                                                      | default                                              |
+|------------------------|----------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|
 | `TW_THREADWATCHER_DIR` | sets location of file with list of threads                                                                                       | `${XDG_DATA_HOME:-$HOME/.local/share}/threadwatcher` |
 | `TW_AUTOPRUNE`         | delete threads out of list if nothing can be found on scan. (Can result in wrong behaviour with unreliable internet connections) | `true`                                               |
 | `TW_AUTODEDUPE`        | remove duplicates automatically after each scan. (Using sha521 sums)                                                             | `false`                                              |
