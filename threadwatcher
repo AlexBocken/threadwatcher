@@ -215,12 +215,14 @@ dedupe(){
 	fi
 	echo "$dirs" | while read -r dir; do
 		echo "Generating checksums for $dir ..."
-		duplicates="$( sha512sum "$dir"/* | sort -r | awk 'seen[$1]++' )"
+		#sort explanation: list roughly "human readable" names before just number strings.
+		#thus this will result in probably better file names
+		duplicates="$( sha512sum "$dir"/* | sort -r -t _ -k 2h | awk 'seen[$1]++' )"
 		if [ -n "$duplicates" ]; then
 			echo "Deleting duplicates..."
 			echo "$duplicates" | cut -d' ' -f1,2 --complement |
 				while read -r file; do
-					rm -v "$file"
+					rm -v "$file" | sed 's/^removed/[-]/' | tr -d "'"
 				done
 			echo "$(echo "$duplicates" | wc -l) duplicate files have been deleted in $dir"
 		fi
