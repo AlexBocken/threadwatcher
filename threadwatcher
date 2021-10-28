@@ -18,8 +18,8 @@ TMP_URLFILE=/tmp/4chan_thread_watcher_tmp$$
 [ -f "$URLFILE" ] || touch "$URLFILE"
 
 #Cronjob Notifications
-DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus
-export DBUS_SESSION_BUS_ADDRESS
+#To reliably get threadwatcher notifications use cronjobs like this:
+#env DBUS_SESSION_BUS_ADDRESS=your-address /usr/bin/threadwatcher scan
 export DISPLAY=:0.0
 
 help="threadwatcher [add URL DL_LOCATION] [list] [edit] [clean] [help]
@@ -96,7 +96,8 @@ scan(){
 				if [ "$AUTOPRUNE" = "true" ]; then
 					echo "Thread $url not found ($dl_location) pruning from cached list of threads to watch"
 					# shellcheck disable=SC2001
-					notify-send "threadwatcher" "Thread downloading to $(echo "$dl_location" | sed "s|$HOME|~|") is complete now."
+					simplified_loc="$(echo "$dl_location" | sed "s|$HOME|~|")"
+					notify-send "threadwatcher" "Thread downloading to $simplified_loc is complete now."
 				fi
 			else
 				echo "Cannot connect to 4chan."
@@ -183,7 +184,8 @@ prune(){
 			then
 				echo "Thread $url not found ($dl_location) pruning from cached list of threads to watch"
 				# shellcheck disable=SC2001
-				notify-send "threadwatcher" "Thread downloading to $(echo "$dl_location" | sed "s|$HOME|~|") is complete now."
+				simplified_loc="$(echo "$dl_location" | sed "s|$HOME|~|")"
+				notify-send "threadwatcher" "Thread downloading to $simplified_loc is complete now."
 			else
 				echo "Cannot connect to 4chan."
 				cleanup && exit 1
@@ -224,7 +226,9 @@ dedupe(){
 				while read -r file; do
 					rm -v "$file" | sed 's/^removed/[-]/' | tr -d "'"
 				done
-			echo "$(echo "$duplicates" | wc -l) duplicate files have been deleted in $dir"
+			n="$(echo "$duplicates" | wc -l)"
+			[ "$n" -gt 1 ] && adjustment="s have" || adjustment=" has"
+			echo "$n duplicate file$adjustment been deleted in $dir"
 		fi
 	done
 }
