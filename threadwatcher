@@ -70,7 +70,7 @@ scan(){
 	done
 	#Create lock file to stop override of URLFILE
 	touch /tmp/threadwatcher.lock
-	ping -q -c 1 4channel.org > /dev/null|| { echo "Cannot connect to 4chan."; exit 1;}
+	ping -q -c 1 -W 2 4channel.org > /dev/null|| { echo "Cannot connect to 4chan."; exit 1;}
 	if [ "$(wc -l < "$URLFILE")" -gt 0 ]; then
 		echo "Scanning threads..."
 	else
@@ -91,7 +91,7 @@ scan(){
 		echo "$url ($thread_title) $(echo "$dl_location" | sed "s|$HOME|~|")"
 		if [ -z "$(</tmp/content$$)" ]; then
 			#check for internet again, in case something has changed during the download process
-			if ping -q -c 1 4channel.org > /dev/null
+			if ping -q -c 1 -W 2 4channel.org > /dev/null
 			then
 				if [ "$AUTOPRUNE" = "true" ]; then
 					echo "Thread $url not found ($dl_location) pruning from cached list of threads to watch"
@@ -161,7 +161,7 @@ prune(){
 	done
 	#Create lock file to stop override of URLFILE
 	touch /tmp/threadwatcher.lock
-	ping -q -c 1 4channel.org > /dev/null|| { echo "Cannot connect to 4chan."; cleanup && exit 1;}
+	ping -q -c 1 -W 2 4channel.org > /dev/null|| { echo "Cannot connect to 4chan."; cleanup && exit 1;}
 	if [ "$(wc -l < "$URLFILE")" -gt 0 ]; then
 		echo "Pruning threads..."
 	else
@@ -180,7 +180,7 @@ prune(){
 		echo "$url ($thread_title) $(echo "$dl_location" | sed "s|$HOME|~|")"
 		if [ -z "$(</tmp/content$$)" ]; then
 			#check for internet again, in case something has changed during the download process
-			if ping -q -c 1 4channel.org > /dev/null
+			if ping -q -c 1 -W 2 4channel.org > /dev/null
 			then
 				echo "Thread $url not found ($dl_location) pruning from cached list of threads to watch"
 				# shellcheck disable=SC2001
@@ -259,7 +259,7 @@ add() {
 			fi
 
 			## Move already downloaded files to new location
-			ping -q -c 1 1.1.1.1 > /dev/null || ping -q -c 1 1.0.0.1 > /dev/null || ping -q -c 1 4channel.org > /dev/null || { echo "No internet connection detected."; exit ;}
+			ping -q -c 1 -W 2 1.1.1.1 > /dev/null || ping -q -c -W 2 1 1.0.0.1 > /dev/null || ping -q -c 1 -W 2 4channel.org > /dev/null || { echo "No internet connection detected."; exit ;}
 			mkdir -p "$new_location"
 			url="$1"
 			json_url="$(echo "$url" | sed -E 's/boards\.(4chan|4channel)/a.4cdn/; s/$/.json/')"
