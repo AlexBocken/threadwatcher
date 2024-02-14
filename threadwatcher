@@ -26,6 +26,7 @@ help="threadwatcher [add URL DL_LOCATION] [list] [edit] [clean] [help]
 
 add URL DL_LOCATION
 	downloads specified thread to given location. Paths can be relative to \$HOME or absolute.
+scan	scans all threads in list and downloads new files to their respective directories.
 list	lists all currently watched URLs and where they are downloading to
 edit	open threads file in \$EDITOR/vim to manually edit.
 clean	deletes threads file. This will not delete already downloaded material.
